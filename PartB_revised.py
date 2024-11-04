@@ -12,7 +12,16 @@ warnings.filterwarnings("ignore") # uncomment to ignore warnings
 #TODO
 #order output by desc min_support
 # convert output back into x,y coordinates for presentability..  
-# write report on gdocs explaining choice of params, how we reduced the computational load etc. 
+
+# write report on gdocs explaining choice of params, how we reduced the computational load by splitting triplegs at 10 etc. 
+# continued^ - removing consecutive duplicates - so reducing the computational load that way, also correctness of staypoint interpretation 
+# aggregate trips for each user, then flatten. 
+
+# min support set at 5% of length of gsp_sequences, the number of unique movement patterns by the users. 
+# estimated run time - 20 seconds, after all the adjustments for computational load (could use strftime to time)
+# 5 percent minsup works well, imo 
+
+# did i do anything else special here? in terms of processing steps... 80% is preprocessing 20% is applying the model, as per the last lecture
 
 logging.basicConfig(level=logging.INFO)
 
@@ -117,7 +126,8 @@ for sequences in user_sequences.values():
         user_sequence.extend(seq)
     gsp_sequences.append(user_sequence)
 
-# print(gsp_sequences)
+# print(len(gsp_sequences))
+# raise 
 
 # Step 14: Run the GSP algorithm using pymining
 # Set minimum support
