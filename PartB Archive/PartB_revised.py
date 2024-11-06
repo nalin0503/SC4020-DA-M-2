@@ -11,7 +11,8 @@ warnings.filterwarnings("ignore") # uncomment to ignore warnings
 
 #TODO
 #order output by desc min_support
-# convert output back into x,y coordinates for presentability..  
+# convert output back into x,y coordinates for presentability.. 
+# estimated run time - 20 seconds, after all the adjustments for computational load (could use strftime to time) 
 
 # write report on gdocs explaining choice of params, how we reduced the computational load by splitting triplegs at 10 etc. 
 # continued^ - removing consecutive duplicates - so reducing the computational load that way, also correctness of staypoint interpretation 
@@ -55,7 +56,7 @@ positionfixes = gdf[['user_id', 'tracked_at', 'geom']].copy()
 positionfixes.as_positionfixes  # Set accessor
 
 # Step 10: Generate staypoints (even if none are found)
-logging.info('Generating staypoints...')
+logging.info('Generating staypoints.')
 positionfixes, staypoints = ti.preprocessing.positionfixes.generate_staypoints(
     positionfixes,
     method='sliding',
@@ -66,12 +67,12 @@ positionfixes, staypoints = ti.preprocessing.positionfixes.generate_staypoints(
 # At this point, 'positionfixes' will have a 'staypoint_id' column, even if 'staypoints' is empty.
 
 # Step 11: Generate triplegs
-logging.info('Generating triplegs...')
+logging.info('Generating triplegs.')
 positionfixes, triplegs = ti.preprocessing.positionfixes.generate_triplegs(
     positionfixes,
     method='between_staypoints',
     gap_threshold=30
-)
+)  
 
 if triplegs.empty:
     logging.warning('No triplegs generated.')
