@@ -13,15 +13,22 @@ import time  # Added for timing the script
 warnings.filterwarnings("ignore")  # Uncomment to ignore warnings
 
 # TODO
-# fix singular triplegs
-# run for all cities, not just hiroshima
+# fix the flattening of the users' trip data, (done) 
+# fix singular triplegs - Just have both, the 1 length pruned out and the original (done)
+# run for all cities, not just hiroshima (done)
+
+# Choose from "hiroshima", "sapporo", "kumamoto", "kotae"
+city = "kotae" 
 
 logging.basicConfig(level=logging.INFO)
 
 start_time = time.time()  # Start timing the script
 
-# Step 1: Load the dataset
-df = pd.read_csv('/home/nalin/master/Y4S1/SC4020/hiroshima_challengedata.csv')
+# Step 1: Load the dataset, INPUT your own paths here. 
+if city == "kotae": 
+    df = pd.read_csv("/home/nalin/master/Y4S1/SC4020/task1_dataset_kotae.csv")
+else:
+    df = pd.read_csv(f'/home/nalin/master/Y4S1/SC4020/{city}_challengedata.csv') 
 
 # Step 2: Filter for the first 30 days (days 0 to 29, indexed.)
 df = df[(df['d'] >= 0) & (df['d'] < 30)].copy()
@@ -54,7 +61,7 @@ logging.info('Generating staypoints.')
 positionfixes, staypoints = ti.preprocessing.positionfixes.generate_staypoints(  
     positionfixes,
     method='sliding',
-    dist_threshold=1000,  # 2 conjoint blocks
+    dist_threshold=1000,  # Constant on 2 adjacent blocks, 1000m
     time_threshold=60    # 60 minutes (adjust as needed!!)
 )
 
@@ -109,56 +116,77 @@ for idx, row in tripleg_sequences_df.iterrows():
     # Convert coordinates to strings to use as items
     sequence_str = [str(coord) for coord in sequence]
     if user_id not in user_sequences:
-        user_sequences[user_id] = []
+        user_sequences[user_id] = [] 
     user_sequences[user_id].append(sequence_str)
 
 # Prepare sequences for GSP
 gsp_sequences = []
 
 for sequences in user_sequences.values():
-    # Flatten the sequences for each user into a single sequence
-    user_sequence = []
     for seq in sequences:
-        user_sequence.extend(seq)
-    gsp_sequences.append(user_sequence)
+        gsp_sequences.append(seq)
+
+# gsp_sequences is now a sequence of sequences, as required. 
 
 # Step 14: Run the GSP algorithm using pymining
+
 # Set minimum support
-min_support = max(1, int(0.05 * len(gsp_sequences)))  # Currently set at 5% of gsp_sequences
+# Currently set at 0.1% of length of sequences possible. (Rough gauge set for frequent sequences across all sequences)
+min_support = max(1, int(0.001 * len(gsp_sequences))) 
+# min_support = 10
 logging.info(f"min_support chosen is {min_support}")
 
 logging.info('Running GSP algorithm...')
 freq_seqs = seqmining.freq_seq_enum(gsp_sequences, min_support)
-freq_seqs = list(freq_seqs)
+freq_seqs = list(freq_seqs) 
 
 # Order output by descending support for better, more logical presentability 
 freq_seqs = sorted(freq_seqs, key=lambda x: x[1], reverse=True)
 
-# Step 15: Save results to a unique text file in an 'output' directory
+# Step 15: Save results to a unique text file in the 'output' directory
+# We save for results with singletons and without singletons (len>1), since 'trips' are logically atleast 2 coordinates. 
+# However, the GSP algorithm entails that itemsets of length 1 may also be deemed frequent. 
+
 # Create the output directory if it doesn't exist.
-output_dir = 'output'
+output_dir = f'output_{city}' 
 os.makedirs(output_dir, exist_ok=True)
 
 # Generate a unique filename with a timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-output_file_path = os.path.join(output_dir, f'frequent_sequences_{timestamp}.txt')
 
-# Convert output back into original x, y grid cell numbers for interpretabilty. 
-with open(output_file_path, 'w') as f:
+# File path for all frequent sequences
+output_file_path_all = os.path.join(output_dir, f'frequent_sequences_all_{timestamp}.txt')
+# File path for sequences of length > 1
+output_file_path_filtered = os.path.join(output_dir, f'frequent_sequences_filtered_{timestamp}.txt')
+
+# Write all sequences to the first file
+with open(output_file_path_all, 'w') as f_all:
     for seq, support in freq_seqs:
         # Convert each item in seq back to (x, y) coordinates
         seq_coords = [ast.literal_eval(item) for item in seq]
         # Convert coordinates back to original grid cell numbers by dividing by 500
         seq_original_coords = [(int(round(coord[0] / 500)), int(round(coord[1] / 500))) for coord in seq_coords]
-        f.write(f'Sequence: {seq_original_coords}, Support: {support}\n')
+        f_all.write(f'Sequence: {seq_original_coords}, Support: {support}\n')
 
-logging.info(f'saved frequent sequential patterns to {output_file_path}')
+logging.info(f'Saved all frequent sequences to {output_file_path_all}')
 
-# Timed the script from start to finish and log it 
+# Write only sequences of length > 1 to the second file
+with open(output_file_path_filtered, 'w') as f_filtered:
+    for seq, support in freq_seqs:
+        if len(seq) > 1:  # Only include sequences longer than 1
+            # Convert each item in seq back to (x, y) coordinates
+            seq_coords = [ast.literal_eval(item) for item in seq]
+            # Convert coordinates back to original grid cell numbers by dividing by 500
+            seq_original_coords = [(int(round(coord[0] / 500)), int(round(coord[1] / 500))) for coord in seq_coords]
+            f_filtered.write(f'Sequence: {seq_original_coords}, Support: {support}\n')
+
+logging.info(f'Saved frequent sequences of length > 1 to {output_file_path_filtered}')
+
+# Log total runtime
 end_time = time.time()
 elapsed_time = end_time - start_time
 logging.info(f"Total runtime: {elapsed_time:.2f} seconds")
 
-# print('Frequent Sequential Patterns:')
-# for seq, support in freq_seqs:
-#     print(f'Sequence: {seq}, Support: {support}')
+# Print paths for confirmation
+print(f'All sequences saved to: {output_file_path_all}')
+print(f'Filtered sequences (length > 1) saved to: {output_file_path_filtered}')
