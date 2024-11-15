@@ -1,12 +1,15 @@
 from transformers import BertTokenizer, BertModel
 import torch
+import pandas as pd
 
 # Load pretrained BERT tokenizer and model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 model = BertModel.from_pretrained('bert-base-uncased')
 
-# List of phrases
-phrases = ["Hello, how are you?", "BERT is a powerful model.", "Transformers are amazing for NLP tasks."]
+data = pd.read_csv(".\POIdata\POI_datacategories.csv", header=None)
+
+#take the first column of the data and convert it to a list
+phrases = data[0].tolist()
 
 # Tokenize and process all phrases in the list
 inputs = tokenizer(phrases, return_tensors="pt", padding=True, truncation=True)
@@ -26,4 +29,9 @@ phrase_embeddings = last_hidden_states[:, 0, :]  # Shape: (batch_size, hidden_si
 # Convert to numpy matrix for further processing (optional)
 embedding_matrix = phrase_embeddings
 
-print("Embedding Matrix Shape:", embedding_matrix.shape)
+# Save the embeddings to a file
+torch.save(embedding_matrix, "phrase_embeddings.pt")
+
+# Load the embeddings from a file
+embedding_matrix = torch.load("phrase_embeddings.pt")
+print(embedding_matrix.size())
