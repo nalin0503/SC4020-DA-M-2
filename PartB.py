@@ -13,12 +13,11 @@ import time  # Added for timing the script
 warnings.filterwarnings("ignore")  # Uncomment to ignore warnings
 
 # TODO
-# fix the flattening of the users' trip data, (done) 
-# fix singular triplegs - Just have both, the 1 length pruned out and the original (done)
-# run for all cities, not just hiroshima (done)
+# run kotae subsets
 
 # Choose from "hiroshima", "sapporo", "kumamoto", "kotae"
-city = "kotae" 
+city = "kotae"
+subset = 4 # for 'Kotae' only 
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,11 +25,14 @@ start_time = time.time()  # Start timing the script
 
 # Step 1: Load the dataset, INPUT your own paths here. 
 if city == "kotae": 
-    df = pd.read_csv("/home/nalin/master/Y4S1/SC4020/task1_dataset_kotae.csv")
+    df = pd.read_csv(f"/home/nalin/master/Y4S1/SC4020/task1_dataset_kotae_subset_{subset}.csv")
 else:
     df = pd.read_csv(f'/home/nalin/master/Y4S1/SC4020/{city}_challengedata.csv') 
 
-# Step 2: Filter for the first 30 days (days 0 to 29, indexed.)
+# Or if you want to manually enter the file path: 
+# df = pd.read_csv('') 
+
+# Step 2: Filter for the first 30 days (days 0 to 29, indexed.)       
 df = df[(df['d'] >= 0) & (df['d'] < 30)].copy()
 
 # Step 3: Scale x and y coordinates to reflect 500m spatial resolution
@@ -147,9 +149,11 @@ freq_seqs = sorted(freq_seqs, key=lambda x: x[1], reverse=True)
 # We save for results with singletons and without singletons (len>1), since 'trips' are logically atleast 2 coordinates. 
 # However, the GSP algorithm entails that itemsets of length 1 may also be deemed frequent. 
 
-# Create the output directory if it doesn't exist.
-output_dir = f'output_{city}' 
-os.makedirs(output_dir, exist_ok=True)
+if city =="kotae":
+    output_dir = f'results_PartB/output_{city}_subset_{subset}'
+else:
+    output_dir = f'results_PartB/output_{city}'
+os.makedirs(output_dir, exist_ok=True) # Create the output directory if it doesn't exist.
 
 # Generate a unique filename with a timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
