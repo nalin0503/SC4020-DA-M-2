@@ -1,3 +1,6 @@
+""""
+Utility functions for data management
+"""
 import pandas as pd
 
 def load_data(file_path, sample_size=None):

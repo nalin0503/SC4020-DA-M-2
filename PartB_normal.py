@@ -1,3 +1,9 @@
+"""
+This script is to process datasets of moderate size, such as city B, C & D. It utilizes the trackintel 
+package for tripleg generation and pymining for the GSP algorithm. No distributed computing needed framework here. 
+
+We also appropriately process the data into a GeoDataFrame and implement logging mechanisms for tracing of results. 
+"""
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
