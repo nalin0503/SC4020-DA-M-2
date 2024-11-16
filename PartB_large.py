@@ -139,7 +139,7 @@ frequent_sequences_formatted = frequent_sequences.withColumn(
 # Select the formatted sequence and frequency
 frequent_sequences_formatted = frequent_sequences_formatted.select('sequence_str', 'freq')
 
-# Repartition before writing
+# Repartition before writing (PURELY FOR WRITING purposes, does not affect the processing of the algo)
 frequent_sequences_formatted = frequent_sequences_formatted.repartition(100)
 
 # Save frequent sequences to Parquet

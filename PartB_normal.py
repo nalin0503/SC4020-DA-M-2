@@ -131,7 +131,7 @@ for sequences in user_sequences.values():
 # Step 14: Run the GSP algorithm using pymining
 
 # Set minimum support
-# Currently set at 0.1% of length of sequences possible. (Rough gauge set for frequent sequences across all sequences)
+# Currently set at 0.1% of length of sequences possible. (Rough gauge set for what is considered 'frequent' relative to the size of the dataset.)
 min_support = max(1, int(0.001 * len(gsp_sequences))) 
 # min_support = 10
 logging.info(f"min_support chosen is {min_support}")
