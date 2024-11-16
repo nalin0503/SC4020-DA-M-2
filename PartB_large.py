@@ -1,3 +1,11 @@
+"""
+This script is for processing large datasets such as city A using Apache Spark via PySpark. 
+We leverage distributed computing and the enhanced dataset management capabilities of Spark to 
+cache, partition and process the data appropriately on-prem.  
+
+The output is a .parquet file from spark, which is automatically processed into a .csv and saved in 
+the results_PartB folder with a unique timestamp identifier.  
+"""
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, collect_list, array, concat_ws, array_join, transform, size, isnan, when, count
 from pyspark.sql.types import StringType
@@ -131,7 +139,7 @@ frequent_sequences_formatted = frequent_sequences.withColumn(
 # Select the formatted sequence and frequency
 frequent_sequences_formatted = frequent_sequences_formatted.select('sequence_str', 'freq')
 
-# Repartition before writing
+# Repartition before writing (PURELY FOR WRITING purposes, does not affect the processing of the algo)
 frequent_sequences_formatted = frequent_sequences_formatted.repartition(100)
 
 # Save frequent sequences to Parquet
