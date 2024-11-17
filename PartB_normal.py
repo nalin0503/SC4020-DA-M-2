@@ -18,7 +18,7 @@ import time  # Added for timing the script
 warnings.filterwarnings("ignore")  # Uncomment to ignore warnings
 
 # Choose from "hiroshima", "sapporo", "kumamoto"
-city = "sapporo"
+city = "hiroshima"
 
 logging.basicConfig(level=logging.INFO)
 
