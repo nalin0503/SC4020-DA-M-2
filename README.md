@@ -5,7 +5,7 @@
 To set up the environment, install the required dependencies using the following command:
 
 ```bash
-pip install fastparquet geopandas numpy pandas pymining pyspark torch torchvision torchaudio trackintel logging warnings datetime ast time queue itertools collections matplotlib
+pip install fastparquet geopandas numpy pandas pymining pyspark torch torchvision torchaudio trackintel logging warnings datetime ast time queue itertools collections matplotlib pyarrow
 ```
 
 ## Directory Structure for Part B
