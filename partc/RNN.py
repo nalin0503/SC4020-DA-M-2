@@ -29,7 +29,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Load phrase embeddings
 phrase_embeddings = torch.load('../phrase_embeddings.pt').to(device)
-print(f"Phrase embeddings shape: {phrase_embeddings.shape}")  # Should be (85, 768)
+# print(f"Phrase embeddings shape: {phrase_embeddings.shape}")  # Should be (85, 768)
 
 class SimpleRNN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_layers=1):
@@ -101,9 +101,9 @@ def coordinates_to_vector_map(path_to_mapping_csv):
     df = df[['x', 'y', 'POI_Probabilities', 'Input_features']]
     return df
 
-def sequence_to_vectors(tup_sequence, coordinates_to_vector_map_df):
-    if len(tup_sequence) < 2:
-        raise ValueError('The sequence must contain at least 2 coordinates')
+def sequence_to_vectors(tup_sequence, coordinates_to_vector_map_df, min_length=2):
+    if len(tup_sequence) < min_length:
+        raise ValueError(f'The sequence must contain at least {min_length} coordinates')
     
     df = coordinates_to_vector_map_df
     input_vector_sequence = []
@@ -137,6 +137,10 @@ def sequence_to_vectors(tup_sequence, coordinates_to_vector_map_df):
     if not input_vector_sequence:
         raise ValueError('The input vector sequence cannot be empty')
     return torch.stack(input_vector_sequence), target_labels
+
+def sequence_to_vectors_from_city(tup_sequence, city):
+    mapping = coordinates_to_vector_map(city_to_mapping_path(city))
+    return sequence_to_vectors(tup_sequence, mapping, min_length=1)
 
 class SequenceDataset(Dataset):
     def __init__(self, city_names):
@@ -191,58 +195,79 @@ model = SimpleRNN(input_size, hidden_size, output_size, num_layers).to(device)
 criterion = nn.KLDivLoss(reduction='batchmean')
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-# Training loop
-train_losses = []
-validation_losses = []
+if __name__ == '__main__':
+    print("Training the model...")
 
-for epoch in range(num_epochs):
-    model.train()
-    total_train_loss = 0
-    for sequences, targets, lengths in train_loader:
-        optimizer.zero_grad()
-        outputs = model(sequences, lengths)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
-        total_train_loss += loss.item()
-    
-    average_train_loss = total_train_loss / len(train_loader)
-    train_losses.append(average_train_loss)
-    
-    # Validation
-    model.eval()
-    total_validation_loss = 0
-    with torch.no_grad():
-        for sequences, targets, lengths in validation_loader:
+    # Training loop
+    train_losses = []
+    validation_losses = []
+
+    for epoch in range(num_epochs):
+        model.train()
+        total_train_loss = 0
+        for sequences, targets, lengths in train_loader:
+            optimizer.zero_grad()
             outputs = model(sequences, lengths)
             loss = criterion(outputs, targets)
-            total_validation_loss += loss.item()
-    average_validation_loss = total_validation_loss / len(validation_loader)
-    validation_losses.append(average_validation_loss)
-    
-    print(f'Epoch [{epoch+1}/{num_epochs}], Train Loss: {average_train_loss:.4f}, Validation Loss: {average_validation_loss:.4f}')
+            loss.backward()
+            optimizer.step()
+            total_train_loss += loss.item()
+        
+        average_train_loss = total_train_loss / len(train_loader)
+        train_losses.append(average_train_loss)
+        
+        # Validation
+        model.eval()
+        total_validation_loss = 0
+        with torch.no_grad():
+            for sequences, targets, lengths in validation_loader:
+                outputs = model(sequences, lengths)
+                loss = criterion(outputs, targets)
+                total_validation_loss += loss.item()
+        average_validation_loss = total_validation_loss / len(validation_loader)
+        validation_losses.append(average_validation_loss)
+        
+        print(f'Epoch [{epoch+1}/{num_epochs}], Train Loss: {average_train_loss:.4f}, Validation Loss: {average_validation_loss:.4f}')
 
-# Save the model
-torch.save(model.state_dict(), 'rnn_model.pth')
-print("Model saved to 'rnn_model.pth'")
+    # Save the model
+    torch.save(model.state_dict(), 'rnn_model.pth')
+    print("Model saved to 'rnn_model.pth'")
 
-# Generate a timestamp
-timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    # Generate a timestamp
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-# Plot the losses
-plt.figure(figsize=(10, 5))
-plt.plot(range(1, num_epochs + 1), train_losses, label='Train Loss')
-plt.plot(range(1, num_epochs + 1), validation_losses, label='Validation Loss')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.title('Training and Validation Loss')
-plt.legend()
-plt.grid(True)
+    # Plot the losses
+    plt.figure(figsize=(10, 5))
+    plt.plot(range(1, num_epochs + 1), train_losses, label='Train Loss')
+    plt.plot(range(1, num_epochs + 1), validation_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.grid(True)
 
-# Show the plot
-plt.show()
+    # Show the plot
+    plt.show()
 
-# Save the plot with a timestamp
-filename = f'loss_plot_{timestamp}.png'
-plt.savefig(filename, format='png', dpi=300)
-print(f"Plot saved as '{filename}'") 
+    # Save the plot with a timestamp
+    filename = f'loss_plot_{timestamp}.png'
+    plt.savefig(filename, format='png', dpi=300)
+    print(f"Plot saved as '{filename}'") 
+
+    # Compute the testing loss
+    model.eval()  # Set the model to evaluation mode
+    total_test_loss = 0
+    with torch.no_grad():  # Disable gradient computation
+        for sequences, targets, lengths in test_loader:
+            sequences = sequences.to(torch.float32)
+            lengths = lengths.to(torch.long)
+            targets = targets.to(torch.float32)
+            
+            outputs = model(sequences, lengths)
+            loss = criterion(outputs, targets)
+            total_test_loss += loss.item()
+
+    average_test_loss = total_test_loss / len(test_loader)
+    print(f'Test Loss: {average_test_loss:.4f}')
+
+    # End of script
